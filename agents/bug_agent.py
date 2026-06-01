@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from crewai import Agent, Task
 
-from ast_tools import ExtractFunctionContextTool
-from git_tools import ReadFileAtRefTool
-from llm import get_llm
+from tools.ast_tools import ExtractFunctionContextTool
+from tools.git_tools import ReadFileAtRefTool
+from tools.llm import get_llm
 
 
 def build_bug_agent() -> Agent:

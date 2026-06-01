@@ -13,13 +13,17 @@ from dataclasses import dataclass
 
 import git
 from crewai import Crew, Process
+import os, sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from ast_tools import extract_definitions, functions_touching_lines
-from bug_agent import build_bug_agent, build_bug_task
-from coordinator_agent import build_coordinator_agent, build_coordinator_task
-from documentation_agent import run_documentation_review
-from fix_agent import build_fix_agent, build_fix_task
-from git_tools import (
+from tools.ast_tools import extract_definitions, functions_touching_lines
+from agents.bug_agent import build_bug_agent, build_bug_task
+from agents.coordinator_agent import build_coordinator_agent, build_coordinator_task
+from agents.documentation_agent import run_documentation_review
+from agents.fix_agent import build_fix_agent, build_fix_task
+from tools.git_tools import (
     FileChange,
     clone_or_open,
     get_changed_files,
@@ -27,9 +31,9 @@ from git_tools import (
     read_file_at,
     resolve_refs,
 )
-from performance_agent import build_performance_agent, build_performance_task
-from security_agent import build_security_agent, build_security_task
-from state import ReviewState
+from agents.performance_agent import build_performance_agent, build_performance_task
+from agents.security_agent import build_security_agent, build_security_task
+from core.state import ReviewState
 
 # Callback signature: (event_name: str, detail: str) -> None
 # Streamlit hooks into this to show a live progress log.
@@ -244,7 +248,7 @@ def _run_detection_crew(
         agents=agents,
         tasks=tasks,
         process=Process.sequential,
-        verbose=False,
+        verbose=True,
     )
     result = crew.kickoff(inputs=inputs)
 
@@ -266,7 +270,7 @@ def _run_fix_crew(inputs: dict) -> list[dict]:
         agents=[fix],
         tasks=[build_fix_task(fix)],
         process=Process.sequential,
-        verbose=False,
+        verbose=True,
     )
     result = crew.kickoff(inputs=inputs)
     task_outputs = getattr(result, "tasks_output", []) or []

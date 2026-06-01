@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 
-from state import ReviewState
+from core.state import ReviewState
 
 
 _SEVERITY_PENALTY = {

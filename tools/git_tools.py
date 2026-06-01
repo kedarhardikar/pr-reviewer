@@ -18,7 +18,7 @@ import git
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from config import CONFIG
+from core.config import CONFIG
 
 
 @dataclass

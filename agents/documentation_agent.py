@@ -34,11 +34,15 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 
 import git
 from crewai import Agent, Task
-
-from ast_tools import (
+import os, sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+from tools.ast_tools import (
     Definition,
     ExtractFunctionContextTool,
     check_naming,
@@ -47,10 +51,10 @@ from ast_tools import (
     extract_definitions,
     functions_touching_lines,
 )
-from config import CONFIG
-from git_tools import FileChange, ReadFileAtRefTool, read_file_at
-from llm import get_llm
-from state import Finding
+from core.config import CONFIG
+from tools.git_tools import FileChange, ReadFileAtRefTool, read_file_at
+from tools.llm import get_llm
+from core.state import Finding
 
 
 _MISMATCH_PROMPT = """You are a senior code reviewer checking if a Python docstring still matches its function's behaviour.

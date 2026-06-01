@@ -12,8 +12,8 @@ import traceback
 
 import streamlit as st
 
-from crew import run_review
-from reporter import compute_score, generate_report
+from core.crew import run_review
+from core.reporter import compute_score, generate_report
 
 
 # --------------------------------------------------------------- page setup

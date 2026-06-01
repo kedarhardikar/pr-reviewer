@@ -20,8 +20,12 @@ from dataclasses import dataclass
 import git
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
+import os, sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from git_tools import read_file_at
+from tools.git_tools import read_file_at
 
 
 _SNAKE_CASE_RE = re.compile(r"^_?_?[a-z][a-z0-9_]*$")

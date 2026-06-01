@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from crewai import LLM
 
-from config import CONFIG
+from core.config import CONFIG
 
 
 def get_llm() -> LLM:

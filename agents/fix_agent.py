@@ -7,10 +7,14 @@ concrete code suggestions.
 from __future__ import annotations
 
 from crewai import Agent, Task
+import os, sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from ast_tools import ExtractFunctionContextTool
-from git_tools import ReadFileAtRefTool
-from llm import get_llm
+from tools.ast_tools import ExtractFunctionContextTool
+from tools.git_tools import ReadFileAtRefTool
+from tools.llm import get_llm
 
 
 def build_fix_agent() -> Agent:
