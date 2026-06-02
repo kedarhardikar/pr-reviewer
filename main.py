@@ -17,8 +17,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from crew import run_review
-from reporter import compute_score, generate_report
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+
+from core.crew import run_review
+from core.reporter import compute_score, generate_report
 
 
 def main() -> None:
@@ -43,7 +46,7 @@ def main() -> None:
     score = compute_score(result.state)
 
     if args.output:
-        with open(args.output, "w") as f:
+        with open(args.output, "w", encoding="utf-8") as f:
             f.write(report)
         print(f"Report written to {args.output} (score: {score}/100)")
     else:

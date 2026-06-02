@@ -59,5 +59,6 @@ class ReviewState(TypedDict, total=False):
     documentation_findings: list[dict]
 
     fixes: list[dict]
+    synthesis: dict          # narrative + prioritised_findings from Synthesis Agent
     final_report: str
     score: int

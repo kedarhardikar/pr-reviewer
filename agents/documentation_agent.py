@@ -33,12 +33,13 @@ Two forms:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 
 import git
 from crewai import Agent, Task
-import os, sys
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -57,7 +58,7 @@ from tools.llm import get_llm
 from core.state import Finding
 
 
-_MISMATCH_PROMPT = """You are a senior code reviewer checking if a Python docstring still matches its function's behaviour.
+_MISMATCH_PROMPT = """You are a senior code reviewer checking if a Python docstring actively CONTRADICTS its function's behaviour.
 
 Function source:
 ```python
@@ -67,10 +68,22 @@ Function source:
 Docstring:
 \"\"\"{docstring}\"\"\"
 
-Decide whether the docstring is materially inconsistent with what the code does (wrong return, missing/extra side effects, wrong parameters). Minor wording differences do NOT count.
+Rules — flag mismatch=true ONLY if the docstring says something that is FACTUALLY WRONG about the code:
+  - States the function returns X but it actually returns Y (different type or value)
+  - States a side-effect that does NOT happen (e.g. "deletes files" but code never calls os.remove)
+  - States NO side-effect but the code clearly has one (e.g. docstring silent on deletion but code removes files)
+  - Describes the function as a simple write/save/delete action but the code returns True/False to
+    signal success or failure — this is a silent failure pattern the caller cannot know about
+  - Describes completely different behaviour from what the code does
+
+Do NOT flag mismatch=true for:
+  - The docstring being short or incomplete (missing parameter descriptions, no return type mentioned)
+  - Minor wording differences or paraphrasing
+  - The docstring not capturing every implementation detail
+  - The docstring being a high-level summary that is still broadly accurate
 
 Respond with ONLY a JSON object on a single line, no prose, no markdown fences:
-{{"mismatch": true|false, "reason": "<one sentence if true, empty string if false>"}}"""
+{{"mismatch": true|false, "reason": "<one sentence describing the factual contradiction if true, empty string if false>"}}"""
 
 
 # --------------------------------------------------------------- direct path
@@ -194,8 +207,13 @@ def _mismatched_docstrings(
     for d in defs:
         if d.kind == "class" or not d.has_docstring:
             continue
+        # Skip one-liner docstrings — they're deliberately high-level summaries.
+        # The LLM cannot reliably distinguish "incomplete" from "wrong" for these.
+        docstring = d.docstring or ""
+        if len(docstring.strip().splitlines()) == 1 and len(docstring.strip()) < 80:
+            continue
         src = _truncate(d.source, CONFIG.max_context_lines)
-        prompt = _MISMATCH_PROMPT.format(source=src, docstring=d.docstring or "")
+        prompt = _MISMATCH_PROMPT.format(source=src, docstring=docstring)
         try:
             raw = llm.call(
                 [

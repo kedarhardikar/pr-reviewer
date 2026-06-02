@@ -80,7 +80,7 @@ with st.sidebar:
     )
     model = st.text_input(
         "Ollama model",
-        value=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:1.5b"),
+        value=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
         disabled=skip_llm,
         help="Must be a model you've already pulled with `ollama pull <name>`.",
     )
@@ -253,6 +253,7 @@ with col_summary:
 tabs = st.tabs(
     [
         "📋 Report",
+        "🧠 Synthesis",
         "🐛 Bugs",
         "🔒 Security",
         "⚡ Performance",
@@ -311,26 +312,56 @@ with tabs[0]:
     )
 
 with tabs[1]:
-    _render_findings(state.get("bug_findings", []) or [], "No bugs detected.")
+    synthesis = state.get("synthesis") or {}
+    if not synthesis:
+        st.info("Synthesis not available (no findings, or --skip-llm used).")
+    else:
+        if synthesis.get("narrative"):
+            st.subheader("Summary")
+            st.write(synthesis["narrative"])
+        pf = synthesis.get("prioritised_findings") or []
+        if pf:
+            st.subheader("Prioritised Action List")
+            severity_badge = {
+                "critical": "🔴", "high": "🟠", "medium": "🟡",
+                "low": "🔵", "info": "⚪",
+            }
+            for f in pf:
+                rank = f.get("rank", "?")
+                sev = str(f.get("severity", "info")).lower()
+                badge = severity_badge.get(sev, "·")
+                loc = f.get("file", "?")
+                if f.get("line"):
+                    loc = f"{loc}:{f['line']}"
+                label = f"{rank}. {badge} `{loc}` — {f.get('issue', '')[:80]}"
+                with st.expander(label):
+                    st.write(f.get("issue", ""))
+                    if f.get("action"):
+                        st.info(f"**Fix:** {f['action']}")
+        elif synthesis.get("narrative"):
+            st.success("No prioritised findings.")
 
 with tabs[2]:
+    _render_findings(state.get("bug_findings", []) or [], "No bugs detected.")
+
+with tabs[3]:
     _render_findings(
         state.get("security_findings", []) or [], "No security issues detected."
     )
 
-with tabs[3]:
+with tabs[4]:
     _render_findings(
         state.get("performance_findings", []) or [],
         "No performance issues detected.",
     )
 
-with tabs[4]:
+with tabs[5]:
     _render_findings(
         state.get("documentation_findings", []) or [],
         "No documentation issues detected.",
     )
 
-with tabs[5]:
+with tabs[6]:
     fixes = state.get("fixes", []) or []
     if not fixes:
         st.info("No fix suggestions generated.")
@@ -344,9 +375,9 @@ with tabs[5]:
                     st.write(fix["explanation"])
                 code = fix.get("suggested_code") or fix.get("suggestion", "")
                 if code:
-                    st.code(code, language="python")
+                    st.code(str(code), language="python")
 
-with tabs[6]:
+with tabs[7]:
     diff = state.get("diff", "")
     if not diff:
         st.info("No diff (empty or skipped).")

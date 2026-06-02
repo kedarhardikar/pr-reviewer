@@ -51,6 +51,28 @@ def generate_report(state: ReviewState) -> str:
     lines.extend(_executive_summary(state, score))
     lines.append("")
 
+    synthesis = state.get("synthesis") or {}
+    if synthesis.get("narrative"):
+        lines.append("## Synthesis")
+        lines.append("")
+        lines.append(synthesis["narrative"])
+        lines.append("")
+        pf = synthesis.get("prioritised_findings") or []
+        if pf:
+            lines.append("### Prioritised Action List")
+            lines.append("")
+            for f in pf:
+                rank = f.get("rank", "?")
+                sev = str(f.get("severity", "info")).upper()
+                loc = f.get("file", "?")
+                if f.get("line"):
+                    loc = f"{loc}:{f['line']}"
+                action = f.get("action", "")
+                lines.append(f"{rank}. **[{sev}]** `{loc}` — {f.get('issue', '')}  ")
+                if action:
+                    lines.append(f"   *Fix:* {action}")
+            lines.append("")
+
     critical = _collect_critical(state)
     if critical:
         lines.append("## Critical Issues")
@@ -85,14 +107,15 @@ def generate_report(state: ReviewState) -> str:
                 f"{':' + str(fix.get('line')) if fix.get('line') else ''}** "
                 f"— {fix.get('original_issue', '')}"
             )
-            if fix.get("explanation"):
+            explanation = fix.get("explanation")
+            if explanation:
                 lines.append("")
-                lines.append(fix["explanation"])
+                lines.append(str(explanation))
             snippet = fix.get("suggested_code") or fix.get("suggestion", "")
             if snippet:
                 lines.append("")
                 lines.append("```python")
-                lines.append(snippet)
+                lines.append(str(snippet))
                 lines.append("```")
             lines.append("")
 
