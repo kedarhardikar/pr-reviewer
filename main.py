@@ -11,7 +11,7 @@ Prerequisites:
     ollama pull qwen2.5-coder:7b
     (ollama serve must be running on localhost:11434)
 """
-
+import core.config
 from __future__ import annotations
 
 import argparse

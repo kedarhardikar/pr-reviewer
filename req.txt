@@ -5,3 +5,4 @@ GitPython>=3.1
 pydantic>=2.0
 bandit>=1.7
 detect-secrets>=1.5
+litellm==1.48.7

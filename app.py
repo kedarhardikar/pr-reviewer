@@ -3,8 +3,8 @@
 Run with:
     streamlit run app.py
 """
-
 from __future__ import annotations
+import core.config
 
 import os
 import time
@@ -80,7 +80,7 @@ with st.sidebar:
     )
     model = st.text_input(
         "Ollama model",
-        value=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
+        value=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"),
         disabled=skip_llm,
         help="Must be a model you've already pulled with `ollama pull <name>`.",
     )

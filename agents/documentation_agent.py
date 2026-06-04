@@ -12,22 +12,6 @@ Two forms:
      the agent loop would waste tokens.
   2. `build_documentation_agent()` / `build_documentation_task()`: CrewAI
      form, kept for completeness in case you want it inside the Crew.
-     
-     Changed File
-      ↓
-    Read Source Code
-        ↓
-    Extract Functions
-        ↓
-    Check Missing Docs
-        ↓
-    Check Parameters
-        ↓
-    Check Naming
-        ↓
-    Optional LLM Check
-        ↓
-    Return Findings
 """
 
 from __future__ import annotations
@@ -43,6 +27,7 @@ from crewai import Agent, Task
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
 from tools.ast_tools import (
     Definition,
     ExtractFunctionContextTool,
@@ -139,7 +124,6 @@ def _missing_docstrings(path: str, defs: list[Definition]) -> list[Finding]:
     for d in defs:
         if not d.is_public or d.has_docstring:
             continue
-        # A long function without a docstring is worse than a one-liner.
         span = d.end_line - d.start_line
         severity = "medium" if span >= 5 else "low"
         out.append(
@@ -200,6 +184,30 @@ def _naming_violations(path: str, defs: list[Definition]) -> list[Finding]:
     return out
 
 
+def _call_llm(llm, system_prompt: str, user_prompt: str) -> str:
+    """Call the LLM regardless of whether it's ChatGroq or CrewAI LLM.
+
+    ChatGroq (LangChain): use .invoke() with message objects.
+    CrewAI LLM (Ollama):  use .call() with message dicts.
+    """
+    try:
+        # LangChain interface (ChatGroq)
+        from langchain_core.messages import HumanMessage, SystemMessage
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt),
+        ])
+        return response.content
+    except (ImportError, AttributeError):
+        pass
+
+    # CrewAI LLM interface (Ollama fallback)
+    return llm.call([
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ])
+
+
 def _mismatched_docstrings(
     path: str, defs: list[Definition], llm
 ) -> list[Finding]:
@@ -207,23 +215,16 @@ def _mismatched_docstrings(
     for d in defs:
         if d.kind == "class" or not d.has_docstring:
             continue
-        # Skip one-liner docstrings — they're deliberately high-level summaries.
-        # The LLM cannot reliably distinguish "incomplete" from "wrong" for these.
+        # Skip one-liner docstrings — too terse to judge accurately.
         docstring = d.docstring or ""
         if len(docstring.strip().splitlines()) == 1 and len(docstring.strip()) < 80:
             continue
         src = _truncate(d.source, CONFIG.max_context_lines)
         prompt = _MISMATCH_PROMPT.format(source=src, docstring=docstring)
         try:
-            raw = llm.call(
-                [
-                    {"role": "system", "content": "You output only valid JSON."},
-                    {"role": "user", "content": prompt},
-                ]
-            )
+            raw = _call_llm(llm, "You output only valid JSON.", prompt)
             parsed = _parse_json_response(raw)
         except Exception as e:
-            # Never let a flaky LLM kill the review.
             out.append(
                 Finding(
                     category="documentation",
